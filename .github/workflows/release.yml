@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: docker/setup-qemu-action@v2
+
+      - uses: docker/setup-buildx-action@v2
+
+      - uses: docker/build-push-action@v2
+        with:
+          file: Dockerfile
+          tags: builder
+          platforms: linux/arm64
+          load: true
+
+      - run: |
+          container_id=$(docker create --platform linux/arm64  builder)
+          docker cp $container_id:/workspace/edk2/Build/ArmVirtCloudHv-AARCH64/RELEASE_GCC5/FV/CLOUDHV_EFI.fd ./
+          docker rm -v $container_id
+
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: CLOUDHV_EFI.fd
